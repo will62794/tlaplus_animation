@@ -12,12 +12,22 @@ EXTENDS Naturals, Sequences, TLC, FiniteSets
 
 (*** Generic Helpers ***)
 
+\* Pick an arbitrary element of a given set
+Pick(S) == CHOOSE x \in S : TRUE
+
+\* Merge two records
+Merge(r1, r2) == 
+    LET D1 == DOMAIN r1 D2 == DOMAIN r2 IN
+    [k \in (D1 \cup D2) |-> IF k \in D1 THEN r1[k] ELSE r2[k]]
+
 \* The set of all permutations of elements of a set S whose length are the cardinality of S.
 SeqPermutations(S) == LET Dom == 1..Cardinality(S) IN
                         {f \in [Dom -> S] : \A w \in S : \E v \in Dom : f[v]=w}
 
 \* Convert a set to a sequence where the elements are in arbitrary order.
-SetToSeq(S) == CHOOSE el \in SeqPermutations(S) : TRUE
+RECURSIVE SetToSeq(_)
+SetToSeq(S) == IF S = {} THEN <<>> 
+               ELSE LET v == Pick(S) IN <<v>> \o SetToSeq(S \ {v})
 
 \* Join a sequence of strings with a specified delimiter.
 RECURSIVE Join(_, _) 
@@ -51,8 +61,8 @@ SVGElemToString(elem) ==
     Join(<<"<", elem.name, " ", attrsStr, ">", childrenStr , "</", elem.name,  ">">>, "")
 
 (* Core graphic element and container constructors. *)
-Circle(cx, cy, r) == SVGElem("circle", [cx |-> cx, cy |-> cy, r |-> r], <<>>)
-Rect(x, y, w, h) == SVGElem("rect", [x |-> x, y |-> y, width |-> w, height |-> h], <<>>)
+Circle(cx, cy, r, attrs) == SVGElem("circle", Merge([cx |-> cx, cy |-> cy, r |-> r], attrs), <<>>)
+Rect(x, y, w, h, attrs) == SVGElem("rect", Merge([x |-> x, y |-> y, width |-> w, height |-> h], attrs), <<>>)
 Group(children, attrs) == SVGElem("g", attrs, children)
 
 ------------------------------------------
@@ -63,31 +73,32 @@ Group(children, attrs) == SVGElem("g", attrs, children)
 \* have all frames for the animation. 'animationFrames' is a sequence of animation states, where each
 \* entry is a graphic element representing single state in a trace. 'svgAnimationString' is
 \* the raw SVG string representation of the current 'animationFrames' sequence. 
-VARIABLE animationFrames
+\*VARIABLE animationFrames
 VARIABLE svgAnimationString
+VARIABLE frameInd
 
-AnimationVars == <<animationFrames, svgAnimationString>>
+AnimationVars == <<svgAnimationString, frameInd>>
 
 MakeFrame(elem, i) == Group(<<elem>>, [class |-> "frame", id |-> ToString(i)])
     
-SVGStr == SVGElemToString(SVGView("500", "500", animationFrames))
+\*SVGStr == SVGElemToString(SVGView("500", "500", animationFrames))
 
 AnimatedInit(Init, View) ==
     /\ Init
-    /\ animationFrames = <<MakeFrame(View, 0)>>
-    /\ svgAnimationString = ""
+    /\ frameInd = 0
+    /\ LET frame == MakeFrame(View, 0) IN
+\*       /\ animationFrames = <<MakeFrame(View, 0)>>
+       /\ svgAnimationString = SVGElemToString(frame)
 
 AnimatedNext(Next, View) == 
     /\ Next
-    /\ LET frameInd == Len(animationFrames) IN 
-       animationFrames' = Append(animationFrames, MakeFrame(View, frameInd))
-    /\ svgAnimationString' = SVGStr
-    
-AnimatedSpec(Init, Next, Vars, View) ==
-    /\ AnimatedInit(Init, View)
-    /\ [][AnimatedNext(Next, View)]_<<Vars,AnimationVars>>
-
+    /\ frameInd' = frameInd + 1
+\*    /\ LET frameInd == Len(animationFrames) 
+    /\ LET frame == MakeFrame(View, frameInd) IN 
+\*           /\ animationFrames' = Append(animationFrames, frame)
+\*    /\ svgAnimationString' = "" \*SVGStr
+           svgAnimationString' = svgAnimationString \o SVGElemToString(frame)
 ====================================================================================================
 \* Modification History
-\* Last modified Sat Mar 24 15:05:57 EDT 2018 by williamschultz
+\* Last modified Sun Mar 25 00:38:19 EDT 2018 by williamschultz
 \* Created Thu Mar 22 23:59:48 EDT 2018 by williamschultz

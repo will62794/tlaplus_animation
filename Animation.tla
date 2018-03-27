@@ -55,6 +55,7 @@ LOCAL SVGView(w, h, children) == SVGElem("svg", [width |-> w, height |-> h], chi
 \* Convert an SVG element into its string representation.
 RECURSIVE SVGElemToString(_)
 SVGElemToString(elem) ==
+    IF elem.name = "_rawtext" THEN elem.attrs.val ELSE
     LET childrenStr == Join([i \in DOMAIN elem.children |-> SVGElemToString(elem.children[i])], "") IN
     LET attrsStrSet == {Join(<<k, Quote(elem.attrs[k])>>, "=") : k \in DOMAIN elem.attrs} IN
     LET attrsStr == Join(SetToSeq(attrsStrSet), " ") IN
@@ -63,6 +64,10 @@ SVGElemToString(elem) ==
 (* Core graphic element and container constructors. *)
 Circle(cx, cy, r, attrs) == SVGElem("circle", Merge([cx |-> cx, cy |-> cy, r |-> r], attrs), <<>>)
 Rect(x, y, w, h, attrs) == SVGElem("rect", Merge([x |-> x, y |-> y, width |-> w, height |-> h], attrs), <<>>)
+
+RawText(text) == SVGElem("_rawtext", [val |-> text], <<>>)
+Text(x, y, text, attrs) == SVGElem("text", Merge([x |-> x, y |-> y], attrs), <<RawText(text)>>) 
+
 Group(children, attrs) == SVGElem("g", attrs, children)
 
 ------------------------------------------
@@ -86,19 +91,20 @@ MakeFrame(elem, i) == Group(<<elem>>, [class |-> "frame", id |-> ToString(i)])
 AnimatedInit(Init, View) ==
     /\ Init
     /\ frameInd = 0
-    /\ LET frame == MakeFrame(View, 0) IN
-\*       /\ animationFrames = <<MakeFrame(View, 0)>>
-       /\ svgAnimationString = SVGElemToString(frame)
+    /\ svgAnimationString = SVGElemToString(MakeFrame(View, 0))
 
 AnimatedNext(Next, View) == 
     /\ Next
     /\ frameInd' = frameInd + 1
-\*    /\ LET frameInd == Len(animationFrames) 
+    \* For efficiency, we don't explicitly keep a running sequence of all animation
+    \* frames. When an action occurs, we simply generate the current frame, convert it
+    \* to its SVG string representation, and append the string to the existing, global
+    \* SVG animation string. This way we don't have to regenerate the SVG strings
+    \* for past frames every time a new action occurs.
     /\ LET frame == MakeFrame(View, frameInd) IN 
-\*           /\ animationFrames' = Append(animationFrames, frame)
-\*    /\ svgAnimationString' = "" \*SVGStr
-           svgAnimationString' = svgAnimationString \o SVGElemToString(frame)
+       svgAnimationString' = svgAnimationString \o SVGElemToString(frame)
+    
 ====================================================================================================
 \* Modification History
-\* Last modified Sun Mar 25 00:38:19 EDT 2018 by williamschultz
+\* Last modified Mon Mar 26 23:39:10 EDT 2018 by williamschultz
 \* Created Thu Mar 22 23:59:48 EDT 2018 by williamschultz

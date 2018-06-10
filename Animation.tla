@@ -81,30 +81,40 @@ Group(children, attrs) == SVGElem("g", attrs, children)
 \*VARIABLE animationFrames
 VARIABLE svgAnimationString
 VARIABLE frameInd
+VARIABLE frames
+VARIABLE actionName
 
-AnimationVars == <<svgAnimationString, frameInd>>
+AnimationVars == <<svgAnimationString, frameInd, frames, actionName>>
 
-MakeFrame(elem, i) == Group(<<elem>>, [class |-> "frame", id |-> ToString(i)])
+ActionNameElem(name) == Text("340", "100", name, <<>>)
+MakeFrame(elem, action, i) == Group(<<elem, ActionNameElem(action)>>, [class |-> "frame", id |-> ToString(i), action |-> action])
     
-\*SVGStr == SVGElemToString(SVGView("500", "500", animationFrames))
+ActionName(str) == actionName' = str   
 
 AnimatedInit(Init, View) ==
     /\ Init
     /\ frameInd = 0
-    /\ svgAnimationString = SVGElemToString(MakeFrame(View, 0))
+    /\ frames = <<>>
+    /\ actionName = ""
+    /\ svgAnimationString = SVGElemToString(MakeFrame(View, "Init", 0))
 
+\* 'View' is a state expression that produces a graphic element. 'Next' is the next 
+\* state relation of a spec.
 AnimatedNext(Next, View) == 
     /\ Next
     /\ frameInd' = frameInd + 1
+    /\ UNCHANGED actionName
+    /\ UNCHANGED frames
     \* For efficiency, we don't explicitly keep a running sequence of all animation
     \* frames. When an action occurs, we simply generate the current frame, convert it
     \* to its SVG string representation, and append the string to the existing, global
     \* SVG animation string. This way we don't have to regenerate the SVG strings
     \* for past frames every time a new action occurs.
-    /\ LET frame == MakeFrame(View, frameInd) IN 
-       svgAnimationString' = svgAnimationString \o SVGElemToString(frame)
+    /\ LET frame == MakeFrame(View, actionName', frameInd') IN 
+           svgAnimationString' = svgAnimationString \o SVGElemToString(frame)
+
     
 ====================================================================================================
 \* Modification History
-\* Last modified Mon Mar 26 23:39:10 EDT 2018 by williamschultz
+\* Last modified Sun Jun 10 15:16:24 EDT 2018 by williamschultz
 \* Created Thu Mar 22 23:59:48 EDT 2018 by williamschultz

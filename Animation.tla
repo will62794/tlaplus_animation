@@ -1,16 +1,38 @@
 -------------------------------------------- MODULE Animation --------------------------------------------
-EXTENDS Naturals, Sequences, TLC, FiniteSets
+EXTENDS Naturals, Sequences, Integers, TLC, FiniteSets
 
-(*
-    This module provides definitions for creating an interactive visual animation of a 
-    TLA+ specification. It allows you to visualize a particular trace by producing an
-    SVG visualization for each "frame" i.e. state of the trace. A user of this module
-    simply has to provide their own "View" function which is an expression
-    that should depend on any variables of their spec and produces a singe visual element 
-    (defined below).
-*)
+(**************************************************************************************************)
+(* The Animation module provides functionality for creating an interactive visual animation of a  *)
+(* TLA+ specification.  It allows you to visualize a particular execution trace by producing an   *)
+(* SVG visualization for each "frame" i.e.  state of the trace.  This is done by defining a state *)
+(* expression called a "View", which produces a set of agraphical elements based on the variables *)
+(* of a specification.  For a specification with existing 'Init' and 'Next' predicates, an        *)
+(* animation is defined as shown below:                                                           *)
+(*                                                                                                *)
+(* EXTENDS Animation                                                                              *)
+(*                                                                                                *)
+(* AnimSpec ==                                                                                    *)
+(*     /\ AnimatedInit(Init, View)                                                                *)
+(*     /\ [][AnimatedNext(Next, View)]_<<vars, AnimationVars>>                                    *)
+(*                                                                                                *)
+(* where 'View' is a user defined state expression.  'vars' must be the tuple of all variables in *)
+(* your existing spec.  The expressions AnimatedInit(Init, View) and AnimatedNext(Next, View)     *)
+(* produce initial state and next state predicates that add auxiliary variables for tracking      *)
+(* animation related state.  These variables should not affect the existing spec, as long as      *)
+(* there are no name conflicts.  Adding these auxiliar variables may slow down model checking     *)
+(* considerably.  Often, simulation mode seem to be more efficient for generating animated        *)
+(* execution traces, since it does not incur the memory overhead of maintaining an explicit queue *)
+(* of next states.  Heopfully this slowdown is acceptable, since the intended purpose of this     *)
+(* Animation module is less about improving verification of TLA+ specs, and more about providing  *)
+(* an alternative way to communicate TLA+ specs and associated models.                            *)
+(*                                                                                                *)
+(**************************************************************************************************)
 
-(*** Generic Helpers ***)
+
+
+(**************************************************************************************************)
+(* Helper Operators                                                                               *)
+(**************************************************************************************************)
 
 \* Pick an arbitrary element of a given set
 Pick(S) == CHOOSE x \in S : TRUE
@@ -41,12 +63,18 @@ Quote(s) == "'" \o s \o "'"
 
 ------------------------------------------
 
-(*** Core Graphic Elements 
-    
-    Internally we represent elements as SVG elements, but it is not necessary for
-    users of this module to understand that internal detail. ***)
+(**************************************************************************************************)
+(*                                                                                                *)
+(* Core Graphic Elements                                                                          *)
+(*                                                                                                *)
+(* Graphic primitives are represented using the same structure as SVG elements, but it is not     *)
+(* necessary for users of this module to understand that internal detail.  These graphic          *)
+(* primitives are what should be used to construct a 'View' expression.  Elements can be          *)
+(* organized hierarchically using the 'Group' element.                                            *)
+(*                                                                                                *)
+(**************************************************************************************************)
 
-\* Core SVG element constructor.
+\* SVG element constructor.
 LOCAL SVGElem(_name, _attrs, _children) == [name |-> _name, attrs |-> _attrs, children |-> _children ]
 
 \* Construct an SVG View element.
@@ -65,46 +93,60 @@ SVGElemToString(elem) ==
 Circle(cx, cy, r, attrs) == SVGElem("circle", Merge([cx |-> cx, cy |-> cy, r |-> r], attrs), <<>>)
 Rect(x, y, w, h, attrs) == SVGElem("rect", Merge([x |-> x, y |-> y, width |-> w, height |-> h], attrs), <<>>)
 
-RawText(text) == SVGElem("_rawtext", [val |-> text], <<>>)
+LOCAL RawText(text) == SVGElem("_rawtext", [val |-> text], <<>>)
 Text(x, y, text, attrs) == SVGElem("text", Merge([x |-> x, y |-> y], attrs), <<RawText(text)>>) 
 
 Group(children, attrs) == SVGElem("g", attrs, children)
 
 ------------------------------------------
 
-(*** Animation Operators ***)
+(**************************************************************************************************)
+(*                                                                                                *)
+(* Animation Operators and Variables                                                              *)
+(*                                                                                                *)
+(* The variables below are used to construct a sequence of animation frames.  Upon each step of   *)
+(* an execution trace, we construct a new frame and convert it to an SVG string, and append it to *)
+(* the global 'svgAnimationString' variable.  When the trace completes, this string should be     *)
+(* suitable to copy into an HTML template that displays an animation frame sequence.              *)
+(*                                                                                                *)
+(**************************************************************************************************)
 
-\* The two variables below are used to save the frame history explicitly, so when model checking finishes, we
-\* have all frames for the animation. 'animationFrames' is a sequence of animation states, where each
-\* entry is a graphic element representing single state in a trace. 'svgAnimationString' is
-\* the raw SVG string representation of the current 'animationFrames' sequence. 
-\*VARIABLE animationFrames
+\* The global SVG string that stores the sequence of all animation frames.
 VARIABLE svgAnimationString
+
+\* Index representing what frame number we are currently on.
 VARIABLE frameInd
-VARIABLE frames
+
+\* The name of the current action being executed. (Optional)
 VARIABLE actionName
 
-AnimationVars == <<svgAnimationString, frameInd, frames, actionName>>
+AnimationVars == <<svgAnimationString, frameInd, actionName>>
 
 ActionNameElem(name) == Text("340", "100", name, <<>>)
+
+\* Builds a single frame 'i' for part of a sequence of animation frames. This is an SVG group element that 
+\* contains identifying information about the frame.
 MakeFrame(elem, action, i) == Group(<<elem, ActionNameElem(action)>>, [class |-> "frame", id |-> ToString(i), action |-> action])
     
 ActionName(str) == actionName' = str   
 
+\* Produces an initial state predicate for animation.                                             *)
 AnimatedInit(Init, View) ==
     /\ Init
     /\ frameInd = 0
-    /\ frames = <<>>
     /\ actionName = ""
     /\ svgAnimationString = SVGElemToString(MakeFrame(View, "Init", 0))
 
-\* 'View' is a state expression that produces a graphic element. 'Next' is the next 
-\* state relation of a spec.
+\*
+\* Produces a next-state relation for animation.
+\*
+\* 'View' is a state expression that produces a graphic element visualizing the state of a spec's
+\* variables.  'Next' is the next state relation of the original spec.
+\*
 AnimatedNext(Next, View) == 
     /\ Next
     /\ frameInd' = frameInd + 1
     /\ UNCHANGED actionName
-    /\ UNCHANGED frames
     \* For efficiency, we don't explicitly keep a running sequence of all animation
     \* frames. When an action occurs, we simply generate the current frame, convert it
     \* to its SVG string representation, and append the string to the existing, global
@@ -116,5 +158,5 @@ AnimatedNext(Next, View) ==
     
 ====================================================================================================
 \* Modification History
-\* Last modified Sun Jun 10 15:16:24 EDT 2018 by williamschultz
+\* Last modified Sat Jun 23 18:19:12 EDT 2018 by williamschultz
 \* Created Thu Mar 22 23:59:48 EDT 2018 by williamschultz

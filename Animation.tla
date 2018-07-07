@@ -5,11 +5,13 @@ EXTENDS Naturals, Sequences, Integers, TLC, FiniteSets
 (* The Animation module provides functionality for creating an interactive visual animation of a  *)
 (* TLA+ specification.  It allows you to visualize a particular execution trace by producing an   *)
 (* SVG visualization for each "frame" i.e.  state of the trace.  This is done by defining a state *)
-(* expression called a "View", which produces a set of agraphical elements based on the variables *)
+(* expression called a "View", which produces a set of graphical elements based on the variables  *)
 (* of a specification.  For a specification with existing 'Init' and 'Next' predicates, an        *)
 (* animation is defined as shown below:                                                           *)
 (*                                                                                                *)
 (* EXTENDS Animation                                                                              *)
+(*                                                                                                *)
+(* View == \* User-defined state expression                                                       *)
 (*                                                                                                *)
 (* AnimSpec ==                                                                                    *)
 (*     /\ AnimatedInit(Init, View)                                                                *)
@@ -19,10 +21,10 @@ EXTENDS Naturals, Sequences, Integers, TLC, FiniteSets
 (* your existing spec.  The expressions AnimatedInit(Init, View) and AnimatedNext(Next, View)     *)
 (* produce initial state and next state predicates that add auxiliary variables for tracking      *)
 (* animation related state.  These variables should not affect the existing spec, as long as      *)
-(* there are no name conflicts.  Adding these auxiliar variables may slow down model checking     *)
-(* considerably.  Often, simulation mode seem to be more efficient for generating animated        *)
+(* there are no name conflicts.  Adding these auxiliary variables may slow down model checking    *)
+(* considerably.  Often, simulation mode seems to be more efficient for generating animated       *)
 (* execution traces, since it does not incur the memory overhead of maintaining an explicit queue *)
-(* of next states.  Heopfully this slowdown is acceptable, since the intended purpose of this     *)
+(* of next states.  Hopefully this slowdown is acceptable, since the intended purpose of this     *)
 (* Animation module is less about improving verification of TLA+ specs, and more about providing  *)
 (* an alternative way to communicate TLA+ specs and associated models.                            *)
 (*                                                                                                *)
@@ -122,7 +124,7 @@ VARIABLE actionName
 
 AnimationVars == <<svgAnimationString, frameInd, actionName>>
 
-ActionNameElem(name) == Text("340", "100", name, <<>>)
+ActionNameElem(name) == Text("10", "30", "Next Action: " \o name, <<>>)
 
 \* Builds a single frame 'i' for part of a sequence of animation frames. This is an SVG group element that 
 \* contains identifying information about the frame.
@@ -143,10 +145,10 @@ AnimatedInit(Init, View) ==
 \* 'View' is a state expression that produces a graphic element visualizing the state of a spec's
 \* variables.  'Next' is the next state relation of the original spec.
 \*
-AnimatedNext(Next, View) == 
+AnimatedNext(Next, View, UseActionNames) == 
     /\ Next
     /\ frameInd' = frameInd + 1
-    /\ UNCHANGED actionName
+    /\ IF UseActionNames THEN TRUE ELSE UNCHANGED actionName
     \* For efficiency, we don't explicitly keep a running sequence of all animation
     \* frames. When an action occurs, we simply generate the current frame, convert it
     \* to its SVG string representation, and append the string to the existing, global
@@ -158,5 +160,5 @@ AnimatedNext(Next, View) ==
     
 ====================================================================================================
 \* Modification History
-\* Last modified Sat Jun 23 18:19:12 EDT 2018 by williamschultz
+\* Last modified Sat Jul 07 16:53:48 EDT 2018 by williamschultz
 \* Created Thu Mar 22 23:59:48 EDT 2018 by williamschultz

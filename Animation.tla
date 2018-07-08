@@ -31,7 +31,6 @@ EXTENDS Naturals, Sequences, Integers, TLC, FiniteSets
 (**************************************************************************************************)
 
 
-
 (**************************************************************************************************)
 (* Helper Operators                                                                               *)
 (**************************************************************************************************)
@@ -76,11 +75,18 @@ Quote(s) == "'" \o s \o "'"
 (*                                                                                                *)
 (**************************************************************************************************)
 
+\* A local, less verbose operator for converting a value to a string.
+LOCAL _str(s) == ToString(s)
+
+
 \* SVG element constructor.
 LOCAL SVGElem(_name, _attrs, _children) == [name |-> _name, attrs |-> _attrs, children |-> _children ]
 
 \* Construct an SVG View element.
 LOCAL SVGView(w, h, children) == SVGElem("svg", [width |-> w, height |-> h], children)
+
+\* Special element that SVGElemToString will interpret as a raw string.
+LOCAL RawText(text) == SVGElem("_rawtext", [val |-> text], <<>>)
 
 \* Convert an SVG element into its string representation.
 RECURSIVE SVGElemToString(_)
@@ -91,13 +97,32 @@ SVGElemToString(elem) ==
     LET attrsStr == Join(SetToSeq(attrsStrSet), " ") IN
     Join(<<"<", elem.name, " ", attrsStr, ">", childrenStr , "</", elem.name,  ">">>, "")
 
-(* Core graphic element and container constructors. *)
-Circle(cx, cy, r, attrs) == SVGElem("circle", Merge([cx |-> cx, cy |-> cy, r |-> r], attrs), <<>>)
-Rect(x, y, w, h, attrs) == SVGElem("rect", Merge([x |-> x, y |-> y, width |-> w, height |-> h], attrs), <<>>)
+\* All elements below can accept an 'attrs' argument. This is a function mapping string
+\* keys to string values. These key-value pairs describe any additional SVG attributes of the element. To pass 
+\* no attributes, just pass attrs=<<>>.
 
-LOCAL RawText(text) == SVGElem("_rawtext", [val |-> text], <<>>)
-Text(x, y, text, attrs) == SVGElem("text", Merge([x |-> x, y |-> y], attrs), <<RawText(text)>>) 
+\* Circle element. 'cx', 'cy', and 'r' should be given as integers.
+Circle(cx, cy, r, attrs) == 
+    LET svgAttrs == [cx |-> _str(cx), 
+                     cy |-> _str(cy), 
+                     r  |-> _str(r)] IN
+    SVGElem("circle", Merge(svgAttrs, attrs), <<>>)
 
+\* Rectangle element. 'x', 'y', 'w', and 'h' should be given as integers.
+Rect(x, y, w, h, attrs) == 
+    LET svgAttrs == [x      |-> _str(x), 
+                     y      |-> _str(y), 
+                     width  |-> _str(w), 
+                     height |-> _str(h)] IN
+    SVGElem("rect", Merge(svgAttrs, attrs), <<>>)
+
+\* Text element.'x', and 'y' should be given as integers, and 'text' given as a string.
+Text(x, y, text, attrs) == 
+    LET svgAttrs == [x |-> _str(x), 
+                     y |-> _str(y)] IN
+    SVGElem("text", Merge(svgAttrs, attrs), <<RawText(text)>>) 
+
+\* Group element. 'children' is as a sequence of elements that will be contained in this group.
 Group(children, attrs) == SVGElem("g", attrs, children)
 
 ------------------------------------------
@@ -124,11 +149,13 @@ VARIABLE actionName
 
 AnimationVars == <<svgAnimationString, frameInd, actionName>>
 
-ActionNameElem(name) == Text("10", "30", "Next Action: " \o name, <<>>)
+LOCAL ActionNameElem(name) == Text(10, 30, "Next Action: " \o name, <<>>)
 
 \* Builds a single frame 'i' for part of a sequence of animation frames. This is an SVG group element that 
 \* contains identifying information about the frame.
-MakeFrame(elem, action, i) == Group(<<elem, ActionNameElem(action)>>, [class |-> "frame", id |-> ToString(i), action |-> action])
+LOCAL MakeFrame(elem, action, i) == 
+    LET attrs == [class |-> "frame", id |-> ToString(i), action |-> action] IN
+    Group(<<elem, ActionNameElem(action)>>, attrs)
     
 ActionName(str) == actionName' = str   
 
@@ -160,5 +187,5 @@ AnimatedNext(Next, View, UseActionNames) ==
     
 ====================================================================================================
 \* Modification History
-\* Last modified Sat Jul 07 16:53:48 EDT 2018 by williamschultz
+\* Last modified Sun Jul 08 12:03:16 EDT 2018 by williamschultz
 \* Created Thu Mar 22 23:59:48 EDT 2018 by williamschultz

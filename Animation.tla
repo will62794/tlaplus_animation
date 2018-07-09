@@ -101,6 +101,14 @@ SVGElemToString(elem) ==
 \* keys to string values. These key-value pairs describe any additional SVG attributes of the element. To pass 
 \* no attributes, just pass attrs=<<>>.
 
+\* Line element. 'x1', 'y1', 'x2', and 'y2' should be given as integers.
+Line(x1, y1, x2, y2, attrs) == 
+    LET svgAttrs == [x1 |-> _str(x1), 
+                     y1 |-> _str(y1), 
+                     x2 |-> _str(x2),
+                     y2 |-> _str(y2)] IN
+    SVGElem("line", Merge(svgAttrs, attrs), <<>>)
+
 \* Circle element. 'cx', 'cy', and 'r' should be given as integers.
 Circle(cx, cy, r, attrs) == 
     LET svgAttrs == [cx |-> _str(cx), 
@@ -187,5 +195,5 @@ AnimatedNext(Next, View, UseActionNames) ==
     
 ====================================================================================================
 \* Modification History
-\* Last modified Sun Jul 08 12:03:16 EDT 2018 by williamschultz
+\* Last modified Sun Jul 08 21:00:11 EDT 2018 by williamschultz
 \* Created Thu Mar 22 23:59:48 EDT 2018 by williamschultz

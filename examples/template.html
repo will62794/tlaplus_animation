@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>TLA+ Trace Visualizer</title>
+	<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script> -->
+	<script src="js/jquery.min.js"></script>
+</head>
+<body>
+
+<style type="text/css">
+	body{
+		font-family: sans-serif;
+	}
+	div{
+		padding: 10px;
+	}
+	button{
+		padding: 6px;
+		background-color: lightgray;
+		border-radius: 5px;
+		cursor:pointer;
+		font-size:14px;
+	}
+	button:active{
+		background-color: lightblue;
+		outline:0;
+	}
+	button:focus{
+		outline:0;
+	}
+	svg{
+		border:solid;
+		border-width: 0px;
+		border-color: lightgray;
+	}
+</style>
+
+<div id="container" style="text-align:center;">
+
+
+<h2>Title</h2>
+
+<button id="prevBtn">Prev Frame</button>
+<button id="nextBtn">Next Frame</button>
+
+<div id="frameNum"></div>
+
+
+		<svg width='1100' height='600' id="svgBox">
+
+		<!-- Paste SVG Animation String Here -->
+
+		</svg>
+
+</div>
+
+
+<script type="text/javascript">
+	let frameElems = $("g.frame");
+	let currFrame = 0;
+	let maxFrame = frameElems.length;
+
+	function reload(){
+		frameElems.each(function(index){
+			let gid = $(this).attr("id");
+			if(gid && gid===currFrame.toString()){
+				$(this).attr("visibility", "visible");
+				console.log("Activating Frame " + gid);
+			} else{
+				$(this).attr("visibility", "hidden");
+			}
+		});
+		$("#frameNum").html("Frame Number: "+ currFrame);
+	}
+
+
+	function advanceFrame(){
+		currFrame = (currFrame + 1) % maxFrame;
+		reload();
+	}
+
+	function prevFrame(){
+		if(currFrame - 1 < 0){
+			currFrame = maxFrame - 1;
+		} else{
+			currFrame = currFrame - 1;
+		}
+		reload();
+	}
+
+	$(document).keydown(function(e) {
+    switch(e.which) {
+        case 37: // left
+        	prevFrame();
+        	break;
+
+        case 39: // right
+        	advanceFrame();
+        	break;
+
+        default: return; // exit this handler for other keys
+    }
+	    e.preventDefault(); // prevent the default action (scroll / move caret)
+	});
+
+	$("#nextBtn").click(advanceFrame);
+	$("#prevBtn").click(prevFrame);
+
+	reload();
+
+</script>
+
+</body>
+</html>
+
+
+
+
+

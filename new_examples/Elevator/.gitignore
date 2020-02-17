@@ -1,0 +1,7 @@
+# Ignore all generated/downloaded files.
+SpecTE.*
+TE.*
+viewExps.txt
+animation.html
+*.out
+*.jar

@@ -2,6 +2,6 @@
 EXTENDS TLC, ElevatorAnimated, FiniteSets
 
 NotInit == ~Init
-NoElevatorCalls == Cardinality(ActiveElevatorCalls) < 2
+AllInElevator == ~(\A p \in Person : PersonState[p].location \in Elevator)
 
 ====

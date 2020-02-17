@@ -2,7 +2,7 @@
 
 To generate a trace with TLC and produce an animation for the `Elevator.tla` spec in this directory, run the following commands:
 
-```
+```bash
 # Download latest TLC tools and CommunityModules JAR.
 ./get_tlatools.sh
 

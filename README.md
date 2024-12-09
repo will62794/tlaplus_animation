@@ -2,6 +2,10 @@
 
 This is a TLA+ module for creating visualizations of TLC execution traces that can be run inside a web browser. To create an animation, you can start with an existing TLA+ specification and define a "view" expression, which is a TLA+ state expression that produces a set of graphical elements based on the values of the variables declared in your specification. The Animation module, when used in conjunction with TLC, constructs a sequence of frames, where each frame is the value of the view expression at a step in an execution trace. The module uses SVG elements as its graphical primitives, which allows for flexibility and variety in the visualizations that can be produced. 
 
+### Update: December 2024
+
+These visualization features are now integrated into the web-based interface for exploring TLA+ specs found [here](https://github.com/will62794/tla-web). You can see one example [here](https://will62794.github.io/tla-web/#!/home?specpath=.%2Fspecs%2FCabbageGoatWolf.tla).
+
 ### Update: February 2020
 
 The original version of this module, described below and explained in more detail [here](https://www.youtube.com/watch?v=mLF220fPrP4&t=2s), is now somewhat obsolete. TLC [now supports](https://github.com/tlaplus/tlaplus/issues/393) running trace exploration from the command line, which makes it simpler to produce TLA+ animations. The original `Animation.tla` module has been revised a bit and pushed to the CommunityModules repo as a `SVG.tla` [module](https://github.com/tlaplus/CommunityModules/blob/4a1032a541837e4775d48e5efab56ce1f026edf8/modules/SVG.tla), which provides primitives for laying out visualizations. See the [new_examples/Elevator](new_examples/Elevator) directory for a demonstration of animating a trace with this new TLC functionality. It can be done entirely from the command line with no explicit need for TLA+ Toolbox.

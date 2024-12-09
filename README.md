@@ -4,7 +4,7 @@ This is a TLA+ module for creating visualizations of TLC execution traces that c
 
 ### Update: December 2024
 
-These visualization features are now integrated into the web-based interface for exploring TLA+ specs found [here](https://github.com/will62794/tla-web). You can see an example of an animated spec [here](https://will62794.github.io/tla-web/#!/home?specpath=.%2Fspecs%2FCabbageGoatWolf.tla).
+These visualization features are now integrated into the web-based interface for exploring TLA+ specs found [here](https://github.com/will62794/tla-web), so this repository can be considered as somewhat obsolete. You can see an example of an animated spec in the web explorer [here](https://will62794.github.io/tla-web/#!/home?specpath=.%2Fspecs%2FCabbageGoatWolf.tla).
 
 ### Update: February 2020
 
